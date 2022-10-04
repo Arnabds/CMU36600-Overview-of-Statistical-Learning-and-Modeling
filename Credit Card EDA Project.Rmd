@@ -1,0 +1,220 @@
+---
+title: "Exploring the Credit Card data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+```
+
+### Load data
+
+<!-- Make sure your data and R Markdown files are in the same directory. When loaded -->
+<!-- your data file will be called `brfss2013`. Delete this note when before you submit  -->
+<!-- your work.  -->
+
+```{r load-data}
+df=read.csv("creditBalance.csv") 
+```
+
+* * *
+
+## Part 1: Data
+```{r data}
+df = df %>%
+  mutate(bal_to_limit_ratio=Balance/Limit)
+df.new=select(df,-Gender,-Student,-Married)
+# df.new1 = df.new %>%
+#   mutate(bal_to_limit_ratio=Balance/Limit)
+```
+
+## Part 2: Questions to address
+
+**Quesion 1:** What does the data and column say?
+
+**Quesion 2:**Can we find relation between different columns?
+
+**Quesion 3:** Interprete using graphical tool.
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Quesion 1:**
+
+
+```{r}
+dim(df)
+names(df)
+```
+So the data set called "creditBalance" consists of 310 rows and 11 columns named "Income"    "Limit"     "Rating"    "Cards"     "Age"       "Education" "Gender"    "Student"   "Married" "bal_to_limit_ratio"  and "Balance" where Gender, Student, Married are nominal categorical and we can think Cards, education as ordinal variables(Although I will do some numerical analysis on cards) and the rest are numerical. 
+```{r}
+summary(df.new)
+```
+So what we can realize is that the people usually start having credit cards at the age of 24. Their income is 50(I think it is measured in 1000 but I might be wrong or missed the description somewhere) and limit is 5485, rating is 405 and balance is 671 on average. The balance to limit ratio varies mostly from 7 to 15 percent.
+
+**RQuesion 2:**
+```{r}
+library(dplyr)
+table(df$Gender,df$Student)
+```
+We can go a liitle ahead;
+```{r}
+library(dplyr)
+df %>% group_by(., Gender,Student) %>% 
+ dplyr:: select(., Gender, Student, Income, Balance) %>% 
+  summarise(., Mean_Inc=mean(Income), Mean_Bal=mean(Balance),n())
+```
+
+We have 130 male non-student, 15 male student, 141 female non-student and 24 female student. We can see that if a user is student they have less income but more balance. Usually the male students have a significant amount of high balance 1004.53.
+```{r}
+df %>% group_by(., Married) %>% 
+  select(., Married, Income, Balance) %>% 
+  summarise(., Mean_Inc=mean(Income), Mean_Bal=mean(Balance),n())
+```
+We have 192 married user and 118 unmarried. Moreover, the married user earns more and keep balance lower than the other.
+
+```{r}
+library(dplyr)
+df1=df %>% group_by(., Education) %>% 
+  select(., Education, Income, Balance) %>% 
+  summarise(., Mean_Inc=mean(Income), Mean_Bal=mean(Balance),number=n())
+  df1[order(df1$number),]
+```
+
+So we can see that the most of the user is around education level 16.
+
+
+
+**Research quesion 3:**
+
+```{r}
+plot(df$bal_to_limit_ratio)
+```
+So we can see that it is a completely scattered diagram
+
+
+
+
+```{r}
+
+
+library(dplyr)
+library(ggplot2)
+data(df)
+
+list(
+  transmute(df, x=Income, y=Limit, dataset=1),
+  transmute(df, x=Income, y=Rating, dataset=2),
+  transmute(df, x=Income, y=Age, dataset=3),
+  transmute(df, x=Income, y=Balance, dataset=4),
+  transmute(df, x=Income, y=bal_to_limit_ratio, dataset=5),
+  transmute(df, x=Limit, y=Rating, dataset=6),
+  transmute(df, x=Limit, y=Age, dataset=7),
+  transmute(df, x=Limit, y=Balance, dataset=8),
+  transmute(df, x=Limit, y=bal_to_limit_ratio, dataset=9),
+  transmute(df, x=Rating, y=Age, dataset=10),
+  transmute(df, x=Rating, y=Balance, dataset=11),
+  transmute(df, x=Rating, y=bal_to_limit_ratio, dataset=12),
+  transmute(df, x=Age, y=Balance, dataset=13),
+  transmute(df, x=Age, y=bal_to_limit_ratio, dataset=14),
+  transmute(df, x=Balance, y=bal_to_limit_ratio, dataset=15)
+) %>%
+bind_rows() %>%
+ggplot(aes(x, y)) +
+geom_point() + facet_wrap(~ dataset)
+```
+
+
+```{r}
+library(corrplot)
+corrplot(cor(df.new), method = "ellipse")
+```
+From here we can say that there is positive association between (x=Income, y=Limit),
+   (  x=Income, y=Rating),
+   (  x=Income, y=Age),
+   (  x=Income, y=Balance),
+   
+   (  x=Limit, y=Rating),
+   (  x=Limit, y=Age),
+   (  x=Limit, y=Balance),
+   (  x=Limit, y=bal_to_limit_ratio),
+   (  x=Rating, y=Age),
+   (  x=Rating, y=Balance),
+   (  x=Rating, y=bal_to_limit_ratio),
+   (  x=Age, y=Balance,  =13),
+  
+   (  x=Balance, y=bal_to_limit_ratio). Negative association between (  x=Income, y=bal_to_limit_ratio), (  x=Age, y=bal_to_limit_ratio),(education,cards) and almost no association between (cards, rating),(cards,age),(age,education) etc.
+```{r}
+library(dplyr)
+library(ggplot2)
+dfnew=df %>%
+  dplyr:: select(Income,Age) %>%
+  gather()
+dfnew
+df7=dfnew %>%
+  ggplot( mapping=aes(x=value))+
+  geom_histogram(color="blue",fill="springgreen3",bins=25) +scale_x_continuous(lim = c(20, 32))
+df7+ facet_wrap(~key)+labs(x = "Magnitude")+ggtitle("New Faceted Histogram")
+# df %>%
+#   ggplot(aes(x=Cost))+
+#   geom_histogram(color="blue",fill="springgreen3")
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+dfnew=df %>%
+  dplyr:: select(bal_to_limit_ratio) %>%
+  gather()
+dfnew %>%
+  ggplot( mapping=aes(x=value))+
+  geom_histogram(color="blue",fill="springgreen3",bins=25) +scale_x_continuous(lim = c(0, 1))
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+dfnew=df %>%
+  dplyr:: select(Limit) %>%
+  gather()
+dfnew %>%
+  ggplot( mapping=aes(x=value))+
+  geom_histogram(color="blue",fill="springgreen3",bins=25) +scale_x_continuous(lim = c(0, 10000))
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+dfnew=df %>%
+  dplyr:: select(Education) %>%
+  gather()
+dfnew %>%
+  ggplot( mapping=aes(x=value))+
+  geom_histogram(color="blue",fill="springgreen3",bins=25) +scale_x_continuous(lim = c(0, 20))
+```
+These are histogram representation of Question 2.
+```{r}
+boxplot=ggplot(data=df,mapping=aes(x=Married,y=Balance)) + 
+  geom_boxplot(fill="tomato2")
+boxplot
+library(GGally)
+library(ggplot2)
+ggpairs(df.new)
+```
+* * *
+Some box plot interpretetion.

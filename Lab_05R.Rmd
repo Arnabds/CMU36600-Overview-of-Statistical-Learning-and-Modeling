@@ -1,0 +1,113 @@
+---
+title: "Lab_05R"
+author: "36-600"
+date: "Fall 2022"
+output: 
+  html_document:
+    toc: no
+    toc_float: no
+    theme: spacelab
+---
+
+This lab will be a relatively short one, given that your EDA Project report is due at the same time this lab is due (next Tuesday at 8:35 AM).
+
+To answer the questions below, it will again help you to refer to Sections 10.3 and 10.5 of ISLR; it might also help you to refer to your previous lab work (and, as always, to Google). 
+
+## Question 1
+
+Like we did last time, let's create a fake dataset.
+```{r}
+set.seed(505)
+(df <- data.frame(x=runif(3),y=runif(3),z=runif(3)))
+```
+Compute and show the pairwise distance matrix for the *scaled* data. (This is what you would pass into `hclust()`, so there is a reason for doing this.) You should see a lower-triangular matrix as output, with three values between 1 and 4.) Note the smallest value.
+```{r}
+# FILL ME IN
+dist(scale(df))
+```
+
+## Question 2
+
+Now run hierarchical clustering on `df` with average linkage, and plot the dendrogram. What you *should* see is that the height of the first merge is (visually, roughly) is the same as that smallest distance value you saw above. You can confirm this by looking at the `height` element of the list output by `hclust`. This makes sense: the smallest dissimilarity between our data points is exactly the smallest observed Euclidean distance between the points.
+```{r}
+# FILL ME IN
+hc.out = hclust(dist(scale(df)),method="complete")  # we use the same data as we do for K-means
+hc.out
+plot(hc.out)
+```
+
+## Dataset
+
+Let's import the same stellar dataset we used in the previous lab.
+```{r}
+file.path <- "https://raw.githubusercontent.com/pefreeman/36-290/master/EXAMPLE_DATASETS/DRACO/draco_photometry.Rdata"
+load(url(file.path))
+df <- data.frame(ra,dec,velocity.los,log.g,mag.g,mag.r,mag.i)
+rm(file.path,ra,dec,velocity.los,log.g,temperature,mag.u,mag.g,mag.r,mag.i,mag.z,metallicity,signal.noise)
+suppressWarnings(library(tidyverse))
+df %>% 
+  filter(.,ra<264 & dec>56 & velocity.los>-350 & velocity.los< -250) %>% 
+  mutate(.,col.gr=mag.g-mag.r,col.ri=mag.r-mag.i) %>% 
+  select(.,-mag.g,-mag.r,-mag.i,-velocity.los) -> df.new
+```
+
+## Question 3
+
+Use the `hclust()` function to build a hierarchical clustering tree for `df.new`, and use the basic `plot()` function to display the dendrogram. Try both complete and average linkage: which one makes for the best-looking output? (This should not be confused with: which one gives the best clustering result? Note: there is no "right" answer here; best-looking is in the eye of the statistical consultant.) Despite talking up the dendrogram in class, is this actually useful output here? Why or why not? If your client asked for a dendrogram, what step might you want to consider taking before providing one? (Note: when calling `plot()`, consider passing the argument `labels=FALSE` to remove the row numbers at the base of dendrogram.)
+```{r}
+# FILL ME IN
+hc.out = hclust(dist(scale(df.new)),method="complete")  # we use the same data as we do for K-means
+plot(hc.out,labels=FALSE)
+```
+
+
+```{r}
+hc.out = hclust(dist(scale(df.new)),method="average")  # we use the same data as we do for K-means
+plot(hc.out,labels=FALSE)
+```
+```
+FILL ME IN
+I prefer the 1st one as the distance between cluster is comparatively small.
+```
+
+## Question 4
+
+Use the `cutree()` function to map each observation to a cluster, then use `ggpairs()` to display the clusters in a similar manner as above for K-means. Assume the same number of clusters as you did for K-means. Does the output look the same or different from K-means? Is this what you expected? Why or why not? (Hint: if `cluster` is the output from `cutree()`, then `color=factor(cluster)` will properly color each of the points.) Visualizing the output of hierarchical clustering in this manner (rather than using a dendrogram) is better when the sample size is large.
+```{r}
+# FILL ME IN
+library(GGally)
+library(ggplot2)
+df4<- cutree(hc.out, k=2)
+# df4 don't print
+df4g<-ggpairs(data=df.new,mapping=aes(color=factor(df4)))
+df4g
+```
+```
+FILL ME IN
+I feel that the k-means results are not useful.
+
+If we look at the figure, we will see that the clustering is based almost exclusively on the ra variable.
+The reason this happens I assume, is that ra has largest numerical values. K-means is based on Euclidean distances and is highly sensitive to normalization. Having one variable that is on a much larger scale than all the others, can completely bias the clustering.
+
+I think we can safely conclude that this particular analysis is useless.
+```
+
+## Question 5
+
+Implement a GMM-based analysis using the `ClusterR` package, analogous to what is in the notes. Assume *two* clusters. Your final goal is to figure out the proportions of the observations that can be confidently placed in either Cluster 1 or Cluster 2 (cluster probabilities &gt;0.95). The placement of the rest of the observations can be considered ambiguous. As a reminder, one of the outputs from `predict_GMM` is `cluster_proba`. Here, that will be a 1218 x 2 matrix, where the probabilities on each row sum to 1. So, determine how many values in the first column of `cluster_proba` are either &lt;0.05 (the datum is to be associated with *Cluster 2* with high probability) or &gt;0.95, then divide by the number of rows in `cluster_proba`. (Note that I found $\approx$ 48.5% of the data can be confidently placed in one of the two clusters.)
+
+(Note: you will have to install `ClusterR` before completing this question.)
+```{r}
+# FILL ME IN
+suppressMessages(library(ClusterR))
+gmm.out <- GMM(df.new,gaussian_comps=2)
+pred    <- predict_GMM(df.new,gmm.out$centroids,gmm.out$covariance_matrices,gmm.out$weights)
+#pred(useful to see what pred is)
+#pred$cluster_proba (no need otherwise if you print it will be a mess)
+x=pred$cluster_proba[,1] <= 0.05 | pred$cluster_proba[,1]>=0.95
+sum(x)/nrow(df.new)
+#x (no need otherwise if you print it will be a mess)
+# nrows(df5)/1218 Remember pred$cluster_proba is not a data frame, it is a vector so none of the code below will work
+# gmm.out$centroids
+# hist(pred$cluster_proba,col="magenta")
+```
