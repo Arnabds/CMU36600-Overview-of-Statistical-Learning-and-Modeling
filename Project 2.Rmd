@@ -1,0 +1,283 @@
+---
+title: "Project 2"
+author: "Arnab Dey Sarkar"
+date: "2022-11-01"
+output: html_document
+---
+We are doing EDA on diamon.csv file. 
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages(library(dplyr))
+df <- read.csv("diamonds.csv",stringsAsFactors=TRUE)
+df %>% select(.,-X,-cut,-color,-clarity) -> df.new
+df
+```
+
+
+
+```{r, echo=FALSE}
+summary(df)
+```
+
+Seeing the data and the summary we can say that there are some outliers in price.
+
+**Drawing one way contingency tables for categorical variables**
+
+```{r, echo=FALSE}
+table(df$cut)
+table(df$color)
+table(df$clarity)
+table(df$carat)
+```
+
+**Drawing two way contingency tables for categorical variables in the dataset**
+```{r, echo=FALSE}
+cut_color <-xtabs(~cut+color,data = df)
+ftable(cut_color)
+cut_clarity <-xtabs(~cut+clarity,data = df)
+ftable(cut_clarity)
+color_clarity <-xtabs(~color+clarity,data = df)
+ftable(color_clarity)
+```
+
+
+** Boxplot**
+```{r, echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+diamonds_gathered <- df %>% gather(metric, level, -carat)
+head(diamonds_gathered)
+diamonds_cut_clarity <- diamonds_gathered %>% filter(metric %in% c("cut", "clarity"))
+ggplot(diamonds_cut_clarity, aes(x = level, y = carat)) + geom_boxplot() +
+    scale_y_log10() + facet_wrap(~ metric,scales = "free_x") +ggtitle("Clarity vs Cut")
+```
+
+```{r, echo=FALSE}
+boxplot(df$carat ~ df$cut)
+```
+This plot shows the carats on x axis and its frequency on y axis. Majority of the diamonds have a clarity in the bin of 0.2 to 0.5 and the most popular observation (~30K) in the dataset. 0.4 is the most recorded carat. There aren’t any significant observations for diamonds in the carat range of 3.2 to 5.01.
+
+```{r, echo=FALSE}
+boxplot(price~color,data = df,main="Distribution of prices of diamonds with color",xlab="Color",ylab="Prices")
+```
+
+```{r, echo=FALSE}
+boxplot(price~cut,data = df,main="Distribution of prices of diamonds with cut",xlab="Cut",ylab="Prices")
+```
+
+Boxplot for carat
+```{r, echo=FALSE}
+boxplot(df$carat)
+```
+Boxplot for price
+```{r, echo=FALSE}
+boxplot(df$price)
+```
+
+Boxplot for table and depth
+```{r, echo=FALSE}
+boxplot(df$table,df$depth )
+```
+
+**Removing outlier**
+```{r, echo=FALSE}
+library(dplyr)
+df1 = filter(df, carat <= 2, 25<= table & table<= 80 , 40<=depth & depth <=73)
+summary(df1)
+```
+
+**Histogram**
+```{r, echo=FALSE}
+library(lattice)
+histogram(~carat, data = df1,
+main = "Distribution of diamond's weight in Carat", xlab="Carats", col='red' )
+```
+
+```{r, echo=FALSE}
+histogram(~cut, data = df, main = "Distribution of Cuts of diamonds ", xlab="Cuts", col='blue')
+```
+
+```{r, echo=FALSE}
+histogram(~color, data = df, main = "Distribution of Colors of diamonds ", xlab="Colors", col='green' )
+```
+
+```{r, echo=FALSE}
+histogram(~clarity, data = df, main = "Distribution of Clarity of diamonds ", xlab="Clarity", col='purple' )
+```
+
+```{r, echo=FALSE}
+library(Hmisc)
+hist.data.frame(df.new)
+```
+**Some other useful plots**
+
+
+```{r, echo=FALSE}
+plot(price~carat,data = df,main="Distribution of prices of diamonds with weight",xlab="Carat",ylab="Prices",col="darkgreen")
+
+```
+The scatter plot shows a strong positive correlation between carat and price. Low carat diamond denoted on x axis is mostly observed. It is clear that lower carat diamonds have lower price. As the carat size increases, we see diamond price increasing.
+
+
+
+```{r, echo=FALSE}
+plot(price~depth,data = df,main="Distribution of prices of diamonds with depth",xlab="depth",ylab="Prices",col="cadetblue")
+```
+
+```{r, echo=FALSE}
+boxplot(price~table,data = df1,main="Distribution of prices of diamonds with table",xlab="table",ylab="Prices")
+```
+**Correlation**
+```{r, echo=FALSE}
+suppressMessages(library(corrplot))
+df.new=df %>% 
+  dplyr::select(.,carat,depth,table,price,x,y,z) %>% 
+cor()
+```
+
+```{r, echo=FALSE}
+library(corrplot)
+corrplot.mixed(corr=cor(df.new, use="complete.obs"),lower = "shade" ,
+                                                upper="pie", tl.pos="d")
+```
+
+
+**Regression**
+```{r, echo=FALSE}
+set.seed(10)
+s <- sample(nrow(df),round(0.7*nrow(df)))
+df.train=df[s,]
+df.test=df[-s,]
+```
+
+```{r, echo=FALSE}
+model <- price~carat+cut+color+clarity+depth+table+x+y+z
+ reg <-lm(model,data = df.train)
+ summary(reg)
+```
+
+
+
+```{r, echo=FALSE}
+lm.out <- lm(price~.,data=df.train)
+summary(lm.out)
+```
+
+```{r, echo=FALSE}
+lm.out<-lm(price~., data=df.train)
+pred.lm<-predict(lm.out, newdata=df.test)
+
+plot(df.test$price, pred.lm, xlim=c(300,20000), ylim=c(3000,20000))
+abline(a=0,b=1)
+```
+I feel that the data deviates after 13000 otherwise more or less linear.
+
+```{r, echo=FALSE}
+library(car)
+vif(lm.out)
+```
+There is no colinearity for cut, color, clarity, depth and table as the values are less than 5 or 6. For the rest colinearity exists.
+
+**Mean square error**
+```{r, echo=FALSE}
+testlm<-lm(price~., data=df.test)
+mean((testlm$residuals)^2)
+```
+
+
+**R squared**
+```{r, echo=FALSE}
+lm.out <- lm(price~.,data=df.train)
+summary(lm.out)$Adj.R.Squared
+summary(lm.out)$adj.r.squared
+```
+
+
+```{r, echo=FALSE}
+y <- df.train$price
+df.train <- df.train[,-1]
+df.train <- data.frame(df.train,"y"=y)
+
+y <- df.test$price
+df.test <- df.test[,-1]
+df.test <- data.frame(df.test,"y"=y)
+```
+
+**Best glm**
+```{r, echo=FALSE}
+lm.out <- lm(price~.,data=df.train)
+testlm<-lm(price~., data=df.test)
+summary(testlm)
+```
+
+```{r, echo=FALSE}
+set.seed(10)
+s <- sample(nrow(df),round(0.2*nrow(df)))
+df.train=df[s,]
+df.test1=df[-s,]
+t <- sample(nrow(df),round(0.1*nrow(df.test1)))
+df.test=df[t,]
+lm.out <- lm(price~.,data=df.train)
+mse.full <- mean((predict(lm.out,newdata=df.test)-df.test$y)^2) # save for later
+suppressMessages(library(bestglm))
+bg.out <- bestglm(df.train,family=gaussian)
+bg.out.bic <- bestglm(df.train,family=gaussian,IC="BIC")
+bg.out.bic$BestModel
+```
+
+
+```{r, echo=FALSE}
+names(bg.out)
+```
+
+```{r, echo=FALSE}
+mse.full <- mean((predict(lm.out,newdata=df.test)-df.test$y)^2) # save for later
+suppressMessages(library(bestglm))
+bg.out.aic <- bestglm(df.train,family=gaussian,IC="AIC")
+bg.out.aic$BestModel
+```
+BIC has 8 and AIC has 17 predictor variable.
+
+```{r}
+#bg.out$BestModel %>%
+ # predict() (Hiding the large data set)
+```
+
+```{r}
+mean((df.test$y - predict(bg.out.aic$BestModel, newdata = df.test))^2) 
+```
+```{r}
+mean((df.test$y - predict(bg.out.bic$BestModel, newdata = df.test))^2) 
+```
+
+```{r}
+lm.out = lm(y~.,data=df.train) 
+mean( (df.test$y - predict(lm.out,newdata=df.test))^2 )
+```
+The mean square value is less than both aic and bic value.
+
+```{r}
+suppressMessages(library(tidyverse))
+bic    <- bg.out.bic$Subsets["BIC"]
+df.bic <- data.frame("p"=1:ncol(df.train)-1,"BIC"=bic[,1])
+
+ggplot(data=df.bic,mapping=aes(x=p,y=BIC)) +
+  geom_point(size=1.5,color="blue") +
+  geom_line(color="blue") +
+  ylim(min(bic),min(bic+100))
+```
+It has a strong deflection between 3.5 and 4.
+
+```{r}
+summary(bg.out.bic$BestModel, newdata = df.test)
+```
+The adjusted R^2 value is 0.9886. This suggests that the linear fit was improved from just running the lm(), and the data is not almost linear.
+
+**Result**
+According to the results of the linear regression, the p-values for the variables carat, cut, color, clarity, depth, table, x-length, and y-length are all less than.05, making them significant predictive factors, however z-length is not. Additionally, we can see that weight has a considerably greater impact on price than other variables. The price significantly increases as the weight increases (10978.27 per carat increase). Some of the characteristics, such as color, depth, table, and x-length, significantly lower the price when they are increased. The price is significantly reduced by the x-length in comparison to other detrimental contributing elements. Low price reductions are offered on the table. When enhanced, clarity yields a reasonable price increase, though less than the effect of weight.  The pricing is only slightly impacted by the y-length and diamond cut.
+
+**Conclusion**
+Therefore, we looked into how a diamond's unique characteristics, such as its weight, clarity, and cut quality, affected its price and created a linear model to determine how these characteristics affected the price of a diamond.
+
