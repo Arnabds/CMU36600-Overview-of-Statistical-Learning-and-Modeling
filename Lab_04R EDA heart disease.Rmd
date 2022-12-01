@@ -25,7 +25,7 @@ Input the data into `R`, and into a data frame named `df`.
 ```{r}
 # FILL ME IN
 df=read.csv("heart_disease.csv", header=TRUE, stringsAsFactors = TRUE)
-df
+# df
 ```
 
 ## Question 2
@@ -59,7 +59,7 @@ suppressMessages(library(tidyverse))
 # FILL ME IN
 dfnew=df %>%
 select(-id)
-dfnew
+# dfnew
 ```
 
 ## Question 5
@@ -92,7 +92,7 @@ Note that we will not transform the other right-skew variables that have minimum
 # FILL ME IN
 df %>% filter(.,Cost>0) -> df
 df$Cost = log10(df$Cost)
-df
+# df
 df %>%
   ggplot(aes(x=Cost))+
   geom_histogram(color="blue",fill="springgreen3")
@@ -195,7 +195,7 @@ Before you start, there's a wrinkle here: `cor()` does not accept factor variabl
 # FILL ME IN
 df11<- df %>% 
  dplyr:: select(., -Gender, -Drugs, -Complications,-id)
-df11
+# df11
 library(corrplot)
 corrplot(cor(df11))
 ```
@@ -207,7 +207,7 @@ Your last job: create a `ggpairs()` plot for all the predictor variables. (Filte
 # FILL ME IN
 df12<- df %>% 
   dplyr:: select(., -Cost)
-df12
+# df12
 GGally:: ggpairs(df12) # **ggpairs() is not working somehow**
 ```
 

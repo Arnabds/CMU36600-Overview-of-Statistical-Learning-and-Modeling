@@ -1,0 +1,233 @@
+---
+title: "Project 3"
+author: "Arnab Dey Sarkar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r, include=FALSE}
+library(dplyr)
+suppressPackageStartupMessages(library(dplyr))
+df <- read.csv("wineQuality.csv",stringsAsFactors=TRUE)
+```
+
+
+
+```{r, echo=FALSE}
+# See this video https://www.youtube.com/watch?v=AVx7Wc1CQ7Y . There is math calculation at 10.12 as well
+df$density=as.factor(df$density)
+df$labelInt <- as.integer(df$label)
+df$labelInt=as.factor(df$labelInt) 
+# str(df)
+```
+
+
+```{r, echo=FALSE}
+dfnew=df %>% 
+  filter( fix.acid < 10, vol.acid < 1.58 , citric< 1, sugar<10, chlorides<.1,free.sd<50, total.sd <200,sulphates<1, pH>3          & pH<3.5)
+dfnew=dfnew %>%
+  select(-label  )
+dfnew$density=as.factor(dfnew$density)
+df1=dfnew
+#str(dfnew)
+summary(df)
+summary(dfnew)
+xtabs(~density+labelInt,data = df)
+dfnew1=dfnew
+dfnew=dfnew %>%
+  select(-labelInt,-density)
+# df1
+```
+
+
+```{r, echo=FALSE}
+# FILL ME IN
+set.seed(101)
+#x <- c(rnorm(30),norm(30,mean=2.25))
+#y <- c(rnorm(30),rnorm(30,mean=2.25))
+#s <- c(rep(2,30),rep(19,30))
+str(dfnew)
+library(GGally)
+km.out <- kmeans(scale(dfnew),2,nstart=20) # run clustering in the standardized space...
+ggpairs(data=dfnew,mapping=aes(color=factor(km.out$cluster)))
+# color <- km.out$cluster
+# ggplot(data=df,mapping=aes(x=x,y=y)) + # ...but visualize in the native space
+#   geom_point(color=color,shape=s)
+```
+```{r, echo=FALSE}
+# FILL ME IN
+set.seed(101)
+#x <- c(rnorm(30),rnorm(30,mean=2.25))
+#y <- c(rnorm(30),rnorm(30,mean=2.25))
+#s <- c(rep(2,30),rep(19,30))
+library(GGally)
+
+km.out <- kmeans(scale(dfnew),2,nstart=1)
+print(km.out)# run clustering in the standardized space...
+#ggpairs(data=df3,mapping=aes(color=factor(km.out$cluster)))
+# color <- km.out$cluster
+# ggplot(data=df,mapping=aes(x=x,y=y)) + # ...but visualize in the native space
+#   geom_point(color=color,shape=s)
+```
+
+```{r, echo=FALSE}
+# FILL ME IN
+set.seed(101)
+#x <- c(rnorm(30),rnorm(30,mean=2.25))
+#y <- c(rnorm(30),rnorm(30,mean=2.25))
+#s <- c(rep(2,30),rep(19,30))
+library(GGally)
+
+km.out <- kmeans(scale(dfnew),3,nstart=100)
+print(km.out)# run clustering in the standardized space...
+#ggpairs(data=df3,mapping=aes(color=factor(km.out$cluster)))
+# color <- km.out$cluster
+# ggplot(data=df,mapping=aes(x=x,y=y)) + # ...but visualize in the native space
+#   geom_point(color=color,shape=s)
+```
+```{r, echo=FALSE}
+# FILL ME IN
+km.out
+```
+```{r}
+# FILL ME IN
+wss <- rep(NA,10)
+for ( ii in 1:10 ) { 
+  km.out <- kmeans(scale(dfnew),ii,nstart=20); wss[ii] <- km.out$tot.withinss;
+}
+plot(1:10,wss,xlab="k",ylab="Within-Cluster Sum-of-Squares",pch=19,col="blue",typ="b")
+```
+
+The graph deflected at k=2 which is ideal here.
+
+```{r, echo=FALSE}
+# FILL ME IN
+library(cluster)
+ss <- rep(NA,10)
+for ( ii in 2:10 ) { 
+  km.out <- kmeans(scale(dfnew),ii,nstart=20); ss[ii] <- mean(silhouette(km.out$cluster,dist(scale(dfnew)))[,3]);
+}
+plot(2:10,ss[2:10],xlab="k",ylab="Average Silhouette",pch=19,col="blue",typ="b",xlim=c(1,10))
+```
+Silhoutte method gives k=3.
+
+```{r}
+# FILL ME IN
+hc.out = hclust(dist(scale(dfnew)),method="complete")  # we use the same data as we do for K-means
+plot(hc.out,labels=FALSE)
+```
+
+```{r}
+hc.out = hclust(dist(scale(dfnew)),method="average")  # we use the same data as we do for K-means
+plot(hc.out,labels=FALSE)
+```
+
+I prefer the 1st one as the distance between cluster is comparatively small.
+
+```{r}
+# FILL ME IN
+library(GGally)
+library(ggplot2)
+df1<- cutree(hc.out, k=1)
+# df1 don't print
+df1g<-ggpairs(data=dfnew,mapping=aes(color=factor(df1)))
+df1g
+```
+I feel that the k-means results are not useful.
+
+If we look at the figure, we will see that the clustering is based almost exclusively on the alcohol.
+The reason this happens I assume, is that ra has largest numerical values. K-means is based on Euclidean distances and is highly sensitive to normalization. Having one variable that is on a much larger scale than all the others, can completely bias the clustering.
+
+I think we can safely conclude that this particular analysis is useless.
+
+And enough data is not present for k=2 
+```{r, echo=FALSE}
+# FILL ME IN
+suppressMessages(library(ClusterR))
+gmm.out <- GMM(dfnew,gaussian_comps=2)
+pred    <- predict_GMM(dfnew,gmm.out$centroids,gmm.out$covariance_matrices,gmm.out$weights)
+#pred(useful to see what pred is)
+#pred$cluster_proba (no need otherwise if you print it will be a mess)
+x=pred$cluster_proba[,1] <= 0.05 | pred$cluster_proba[,1]>=0.95
+sum(x)/nrow(dfnew)
+#x (no need otherwise if you print it will be a mess)
+# nrows(df5)/1218 Remember pred$cluster_proba is not a data frame, it is a vector so none of the code below will work
+# gmm.out$centroids
+# hist(pred$cluster_proba,col="magenta")
+```
+
+```{r, echo=FALSE}
+names(df)
+```
+
+**Logistic regression model**
+```{r, echo=FALSE}
+# FILL ME IN
+set.seed(10)
+s <- sample(nrow(dfnew1),round(0.7*nrow(dfnew1)))
+df.train=df[s,]
+df.test=df[-s,]
+#Alternate way:
+#ind=sample(2,nrow(df1),replace=T,prob = c(0.8,0.2)) Etar same akta set toiri korlam jar 2to subset roeche akta khali 1 nie( etar modhye 80% data takte pare)arekta khali 2 nie( etar modhye 20% data takte pare).
+# train=df1[ind==1,](df1 er 80% data er modhye rakha holo)
+# test=df1[ind==2,](df1 er 20% data er modhye rakha holo)
+```
+
+
+```{r ,echo=FALSE}
+mymodel=glm(labelInt ~ fix.acid+vol.acid+citric+sugar+chlorides+free.sd+total.sd+density+pH+sulphates+alcohol, data=df.test,family='binomial')
+summary(mymodel)
+# See this video https://www.youtube.com/watch?v=AVx7Wc1CQ7Y . There is math calculation at 10.12 as well
+# If u wanna know why density1 is not there see the youtube video.
+# This means the eqn of lin regression, y=-9.197643+0.020654 fixacid -4.489243vol.acid-0.647700citric+0.074530sugar-1.317787 chlorides+0.014743free.sd-0.007119total.sd-0.772282density2    -1.023088density3+0.368682pH+1.972557sulphates+0.961767 alcohol   
+```
+More star we have. It is more statistically significant. E.g fixed acid is not statistically significant as it occurs with (1-.6151)=.3849 i.e. 38.49 percent confidence level. I ran the next model removing fix acid, chloride and citric. Then pH will be invalid so we remove pH as well.
+
+```{r,echo=FALSE}
+
+mymodel=glm(labelInt ~ vol.acid+citric+sugar+free.sd+total.sd+density+sulphates+alcohol, data=df.test,family='binomial')
+summary(mymodel)
+```
+```{r,echo=FALSE}
+p1=predict(mymodel, df.train, type='response')
+head(p1)
+head(df.train)
+```
+
+**Misclassification error in training data set**
+```{r, echo=FALSE}
+# FILL ME IN
+pred1=ifelse(p1>0.5, 1, 0)
+tab1=table(Predicted=pred1,Actual=df.train$labelInt)
+tab1
+1-sum(diag(tab1))/sum(tab1)
+```
+This is our confusion matrix. Misclassification error in training data set is 0.2552.
+
+**Misclassification error in testing data set**
+
+```{r}
+# FILL ME IN
+p2=predict(mymodel, df.test, type='response')
+pred2=ifelse(p2>0.5, 1, 0)
+tab2=table(Predicted=pred2,Actual=df.test$labelInt)
+tab2
+1-sum(diag(tab2))/sum(tab2)
+```
+Misclassification error in testing data set is 0.2617.
+
+**Goodness of fit test**
+```{r}
+# FILL ME IN
+with(mymodel,pchisq(null.deviance-deviance,df.null-df.residual,lower.tail=F))
+```
+p value is very low. This model is highly significant as the confidence interval is big.
+
+Sorry, I was stuck for long. A lot more can be done but my pace is so slow.

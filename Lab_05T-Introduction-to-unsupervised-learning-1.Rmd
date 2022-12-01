@@ -130,7 +130,7 @@ for ( ii in 1:10 ) {
 }
 plot(1:10,wss,xlab="k",ylab="Within-Cluster Sum-of-Squares",pch=19,col="blue",typ="b")
 ```
-I am confused between k=2 and k=4.
+I am confuse between k=2 and k=4.
 
 ```{r}
 # FILL ME IN
@@ -166,12 +166,11 @@ s <- sort(sample(nrow(df.new),1000))
 Then utilize the `slice()` function from `dplyr` to select the rows recorded in the vector `s`, and save the output to `df.small`.
 
 ```{r}
-library(dplyr)
 set.seed(303)
 s <- sort(sample(nrow(df.new),1000))
 # s you can run this code to know the difference between s and slice(df.new,s)
 # FILL ME IN
-dplyr::slice(df.new, s)
+slice(df.new,s)
 ```
 
 ## Question 9
